@@ -6,6 +6,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/lugar.dart';
+import '../Screens/MapaSeleccionScreen.dart';
+import 'package:latlong2/latlong.dart';
 
 class AgregarLugarScreen extends StatefulWidget {
   @override
@@ -169,6 +171,27 @@ class _AgregarLugarScreenState extends State<AgregarLugarScreen> {
                 value: tieneWifi,
                 onChanged: (val) => setState(() => tieneWifi = val),
               ),
+              ElevatedButton(
+                onPressed: () async {
+                  LatLng? punto = await Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => MapaSeleccionScreen()),
+                  );
+
+                  if (punto != null) {
+                    setState(() {
+                      latitud = punto.latitude.toString();
+                      longitud = punto.longitude.toString();
+                    });
+                  }
+                },
+                child: Text("Poner marcador en el mapa"),
+              ),
+              if (latitud.isNotEmpty && longitud.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text("Ubicación: $latitud, $longitud"),
+                ),
               ElevatedButton(
                 onPressed: _pickImages,
                 child: Text("Seleccionar fotos (${_fotos.length})"),
