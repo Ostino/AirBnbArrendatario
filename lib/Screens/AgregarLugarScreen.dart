@@ -43,12 +43,41 @@ class _AgregarLugarScreenState extends State<AgregarLugarScreen> {
     }
   }
 
+  Future<void> subirFotos(int lugarId, List<File> fotos) async {
+    if (fotos.isEmpty) return;
+
+    var uri = Uri.parse("https://261d-200-87-196-6.ngrok-free.app/api/lugares/$lugarId/foto");
+    var request = http.MultipartRequest('POST', uri);
+
+    for (var foto in fotos) {
+      final bytes = await foto.readAsBytes();
+      final filename = foto.path.split('/').last;
+
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'foto[]', // <- ESTE nombre es importante
+          bytes,
+          filename: filename,
+        ),
+      );
+    }
+
+    final response = await request.send();
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      print("✅ Imágenes subidas con éxito");
+      print(await response.stream.bytesToString()); // Log respuesta si deseas ver
+    } else {
+      print("❌ Error al subir imágenes: ${response.statusCode}");
+    }
+  }
+
+
   Future<void> _guardarLugar() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      print("ID guardado: ${prefs.getInt('id')}"); // → debe mostrar un número
       int? arrendatarioId = prefs.getInt('id');
 
       if (arrendatarioId == null) {
@@ -85,17 +114,8 @@ class _AgregarLugarScreenState extends State<AgregarLugarScreen> {
         final lugarData = jsonDecode(lugarResponse.body);
         final int lugarId = lugarData['id'];
 
-        // Subir fotos si hay
-        for (File foto in _fotos) {
-          var request = http.MultipartRequest(
-            'POST',
-            Uri.parse("https://261d-200-87-196-6.ngrok-free.app/api/lugares/$lugarId/foto"),
-          );
-          request.files.add(
-            await http.MultipartFile.fromPath('foto', foto.path),
-          );
-          await request.send();
-        }
+        // ✅ Subir todas las fotos en una sola petición
+        await subirFotos(lugarId, _fotos);
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Lugar agregado exitosamente")),
